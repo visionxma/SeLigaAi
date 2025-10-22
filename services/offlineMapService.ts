@@ -1,18 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+// ✅ SOLUÇÃO: Usar a API LEGADA que tem documentDirectory e cacheDirectory
+import * as FileSystem from 'expo-file-system/legacy';
 
 const OFFLINE_TILES_KEY = 'offline_tiles_downloaded';
 
-// Usa as constantes corretamente - elas existem mas como propriedades do módulo
-const getTilesDir = () => {
-  if (FileSystem.cacheDirectory) {
-    return `${FileSystem.cacheDirectory}tiles/`;
-  }
-  if (FileSystem.documentDirectory) {
-    return `${FileSystem.documentDirectory}tiles/`;
-  }
-  throw new Error('No directory available');
-};
+// ✅ Agora sim! documentDirectory existe na API legada
+const TILES_DIR = (FileSystem.documentDirectory || FileSystem.cacheDirectory || '') + 'tiles/';
 
 // Coordenadas das cidades do Maranhão
 const REGIONS = {
@@ -40,8 +33,8 @@ const REGIONS = {
   },
 };
 
-// Níveis de zoom a baixar (13-17 são bons para cidades)
-const ZOOM_LEVELS = [13, 14, 15, 16, 17];
+// Níveis de zoom a baixar (reduzido para testes - só 13-15)
+const ZOOM_LEVELS = [13, 14, 15];
 
 interface TileCoord {
   x: number;
@@ -89,7 +82,6 @@ function getTilesForRegion(bounds: any, zoom: number): TileCoord[] {
  */
 async function downloadTile(tile: TileCoord): Promise<boolean> {
   try {
-    const TILES_DIR = getTilesDir();
     const url = `https://tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png`;
     const fileUri = `${TILES_DIR}${tile.z}/${tile.x}/${tile.y}.png`;
 
@@ -100,11 +92,12 @@ async function downloadTile(tile: TileCoord): Promise<boolean> {
       await FileSystem.makeDirectoryAsync(dirUri, { intermediates: true });
     }
 
-    // Baixa o tile
+    // Pequeno delay para não sobrecarregar
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const download = await FileSystem.downloadAsync(url, fileUri);
 
     if (download.status === 200) {
-      console.log(`Downloaded tile: ${tile.z}/${tile.x}/${tile.y}`);
       return true;
     }
 
@@ -119,55 +112,74 @@ async function downloadTile(tile: TileCoord): Promise<boolean> {
  * Baixa todos os tiles das regiões configuradas
  */
 export async function downloadOfflineTiles(): Promise<void> {
-  console.log('Starting offline tiles download...');
+  try {
+    console.log('Starting offline tiles download...');
+    console.log('Tiles directory:', TILES_DIR);
 
-  const TILES_DIR = getTilesDir();
-
-  // Cria diretório principal
-  const mainDirInfo = await FileSystem.getInfoAsync(TILES_DIR);
-  if (!mainDirInfo.exists) {
-    await FileSystem.makeDirectoryAsync(TILES_DIR, { intermediates: true });
-  }
-
-  const allTiles: TileCoord[] = [];
-
-  // Gera lista de tiles para cada região e zoom
-  for (const region of Object.values(REGIONS)) {
-    for (const zoom of ZOOM_LEVELS) {
-      const tiles = getTilesForRegion(region.bounds, zoom);
-      allTiles.push(...tiles);
-      console.log(`Region ${region.name}, zoom ${zoom}: ${tiles.length} tiles`);
+    if (!TILES_DIR) {
+      throw new Error('FileSystem directory not available');
     }
+
+    // Cria diretório principal
+    const mainDirInfo = await FileSystem.getInfoAsync(TILES_DIR);
+    if (!mainDirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(TILES_DIR, { intermediates: true });
+    }
+
+    const allTiles: TileCoord[] = [];
+
+    // Gera lista de tiles para cada região e zoom
+    for (const region of Object.values(REGIONS)) {
+      for (const zoom of ZOOM_LEVELS) {
+        const tiles = getTilesForRegion(region.bounds, zoom);
+        allTiles.push(...tiles);
+        console.log(`Region ${region.name}, zoom ${zoom}: ${tiles.length} tiles`);
+      }
+    }
+
+    console.log(`Total tiles to download: ${allTiles.length}`);
+
+    // Baixa tiles em lotes de 3 (muito conservador para evitar rate limit)
+    const BATCH_SIZE = 3;
+    let downloaded = 0;
+    let failed = 0;
+
+    for (let i = 0; i < allTiles.length; i += BATCH_SIZE) {
+      const batch = allTiles.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map((tile) => downloadTile(tile))
+      );
+
+      results.forEach(result => {
+        if (result.status === 'fulfilled' && result.value) {
+          downloaded++;
+        } else {
+          failed++;
+        }
+      });
+
+      const progress = Math.round(((i + batch.length) / allTiles.length) * 100);
+      console.log(`Progress: ${progress}% (${downloaded} ok, ${failed} failed)`);
+
+      // Delay de 2s entre batches
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    // Marca como baixado
+    await AsyncStorage.setItem(OFFLINE_TILES_KEY, JSON.stringify({
+      downloaded: true,
+      date: new Date().toISOString(),
+      totalTiles: allTiles.length,
+      downloadedTiles: downloaded,
+      failedTiles: failed,
+      regions: Object.keys(REGIONS),
+    }));
+
+    console.log(`Download completed! ${downloaded} tiles downloaded, ${failed} failed`);
+  } catch (error) {
+    console.error('Error downloading offline tiles:', error);
+    throw error;
   }
-
-  console.log(`Total tiles to download: ${allTiles.length}`);
-
-  // Baixa tiles em lotes de 10 para não sobrecarregar
-  const BATCH_SIZE = 10;
-  let downloaded = 0;
-
-  for (let i = 0; i < allTiles.length; i += BATCH_SIZE) {
-    const batch = allTiles.slice(i, i + BATCH_SIZE);
-    const promises = batch.map((tile) => downloadTile(tile));
-    
-    await Promise.all(promises);
-    
-    downloaded += batch.length;
-    console.log(`Progress: ${downloaded}/${allTiles.length}`);
-
-    // Pequeno delay entre lotes para respeitar o servidor
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-
-  // Marca como baixado
-  await AsyncStorage.setItem(OFFLINE_TILES_KEY, JSON.stringify({
-    downloaded: true,
-    date: new Date().toISOString(),
-    totalTiles: allTiles.length,
-    regions: Object.keys(REGIONS),
-  }));
-
-  console.log('Offline tiles download completed!');
 }
 
 /**
@@ -204,8 +216,6 @@ export async function getOfflineTilesInfo(): Promise<any> {
  */
 export async function clearOfflineTiles(): Promise<void> {
   try {
-    const TILES_DIR = getTilesDir();
-    
     // Remove diretório de tiles
     const dirInfo = await FileSystem.getInfoAsync(TILES_DIR);
     if (dirInfo.exists) {
@@ -226,7 +236,6 @@ export async function clearOfflineTiles(): Promise<void> {
  */
 export async function getLocalTileUri(z: number, x: number, y: number): Promise<string | null> {
   try {
-    const TILES_DIR = getTilesDir();
     const fileUri = `${TILES_DIR}${z}/${x}/${y}.png`;
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
 
@@ -245,7 +254,6 @@ export async function getLocalTileUri(z: number, x: number, y: number): Promise<
  */
 export async function getOfflineTilesSize(): Promise<number> {
   try {
-    const TILES_DIR = getTilesDir();
     const dirInfo = await FileSystem.getInfoAsync(TILES_DIR);
     if (!dirInfo.exists) return 0;
 
@@ -262,9 +270,8 @@ export async function getOfflineTilesSize(): Promise<number> {
 
           if (itemInfo.exists && itemInfo.isDirectory) {
             totalSize += await getDirSize(`${itemUri}/`);
-          } else if (itemInfo.exists) {
-            // Estima tamanho médio de tile PNG (30KB)
-            totalSize += 30000;
+          } else if (itemInfo.exists && 'size' in itemInfo) {
+            totalSize += itemInfo.size || 0;
           }
         }
       } catch (error) {

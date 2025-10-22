@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
-import { MapPin, Navigation, RefreshCw, Download } from 'lucide-react-native';
+import { MapPin, Navigation, RefreshCw, Download, Cloud } from 'lucide-react-native';
 import { AlertPoint } from '@/types';
 import { getAllAlertPoints } from '@/services/storageService';
 import { startLocationTracking, requestLocationPermissions } from '@/services/locationService';
 import { registerForPushNotificationsAsync } from '@/services/notificationService';
 import { downloadOfflineTiles, hasOfflineTiles } from '@/services/offlineMapService';
+import { syncAlertPointsFromSheets, isSheetsConfigured } from '@/services/sheetsService';
 
 export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -16,6 +17,7 @@ export default function MapScreen() {
   const [tracking, setTracking] = useState(false);
   const [offlineAvailable, setOfflineAvailable] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const webViewRef = useRef<WebView>(null);
 
   useEffect(() => {
@@ -41,6 +43,15 @@ export default function MapScreen() {
         accuracy: Location.Accuracy.High,
       });
       setLocation(currentLocation);
+
+      // Tenta sincronizar do Google Sheets primeiro
+      if (isSheetsConfigured()) {
+        console.log('Syncing from Google Sheets...');
+        const synced = await syncAlertPointsFromSheets();
+        if (synced) {
+          console.log('Successfully synced from Google Sheets');
+        }
+      }
 
       await loadAlertPoints();
 
@@ -68,8 +79,48 @@ export default function MapScreen() {
     }
   }
 
+  async function handleSyncFromSheets() {
+    if (!isSheetsConfigured()) {
+      Alert.alert(
+        'Google Sheets não configurado',
+        'Configure o ID da planilha no arquivo sheetsService.ts'
+      );
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const synced = await syncAlertPointsFromSheets();
+      
+      if (synced) {
+        await loadAlertPoints();
+        
+        // Atualiza o mapa
+        if (webViewRef.current) {
+          webViewRef.current.reload();
+        }
+        
+        Alert.alert('Sucesso', 'Pontos de alerta sincronizados do Google Sheets!');
+      } else {
+        Alert.alert('Aviso', 'Nenhum ponto encontrado na planilha.');
+      }
+    } catch (error) {
+      console.error('Error syncing from sheets:', error);
+      Alert.alert('Erro', 'Falha ao sincronizar. Verifique sua conexão e se a planilha está pública.');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function handleRefresh() {
     try {
+      // Sincroniza do Google Sheets se configurado
+      if (isSheetsConfigured()) {
+        setSyncing(true);
+        await syncAlertPointsFromSheets();
+        setSyncing(false);
+      }
+      
       await loadAlertPoints();
       
       const currentLocation = await Location.getCurrentPositionAsync({
@@ -106,7 +157,7 @@ export default function MapScreen() {
   async function handleDownloadOfflineMaps() {
     Alert.alert(
       'Baixar Mapas Offline',
-      'Deseja baixar os mapas de Pedreiras e Trizidela do Vale para uso offline? Isso pode levar alguns minutos.',
+      'Deseja baixar os mapas de Pedreiras e Trizidela do Vale para uso offline? Isso pode levar alguns minutos e consumir cerca de 50-100MB de dados.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -119,7 +170,7 @@ export default function MapScreen() {
               Alert.alert('Sucesso', 'Mapas baixados! Agora você pode usar o app offline.');
             } catch (error) {
               console.error('Error downloading tiles:', error);
-              Alert.alert('Erro', 'Falha ao baixar mapas. Verifique sua conexão.');
+              Alert.alert('Erro', 'Falha ao baixar mapas. Verifique sua conexão e tente novamente.');
             } finally {
               setDownloading(false);
             }
@@ -208,11 +259,6 @@ export default function MapScreen() {
         window.centerOnUser = () => {
           map.setView(userMarker.getLatLng(), 15);
         };
-
-        window.updateAlertPoints = (points) => {
-          // Remove marcadores antigos (implementar se necessário)
-          // Adiciona novos (implementar se necessário)
-        };
       </script>
     </body>
     </html>
@@ -262,6 +308,15 @@ export default function MapScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.controlButton, syncing && styles.controlButtonDisabled]}
+          onPress={handleSyncFromSheets}
+          activeOpacity={0.7}
+          disabled={syncing}
+        >
+          <Cloud size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.controlButton}
           onPress={handleRefresh}
           activeOpacity={0.7}
@@ -306,6 +361,11 @@ export default function MapScreen() {
         {downloading && (
           <View style={styles.downloadingBadge}>
             <Text style={styles.downloadingText}>⬇️ Baixando...</Text>
+          </View>
+        )}
+        {syncing && (
+          <View style={styles.syncingBadge}>
+            <Text style={styles.syncingText}>☁️ Sincronizando...</Text>
           </View>
         )}
       </View>
@@ -493,6 +553,22 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   downloadingText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  syncingBadge: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  syncingText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
