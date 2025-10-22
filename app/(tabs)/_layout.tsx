@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { MapPin, Bell } from 'lucide-react-native';
+import { MapPin, Bell, Settings } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -28,6 +28,15 @@ export default function TabLayout() {
           title: 'Histórico',
           tabBarIcon: ({ size, color }) => (
             <Bell size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Configurações',
+          tabBarIcon: ({ size, color }) => (
+            <Settings size={size} color={color} />
           ),
         }}
       />

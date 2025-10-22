@@ -2,13 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
-import { MapPin, Navigation, RefreshCw, Download, Cloud } from 'lucide-react-native';
+import { MapPin, Navigation, RefreshCw, Download, Cloud, BellOff } from 'lucide-react-native';
 import { AlertPoint } from '@/types';
 import { getAllAlertPoints } from '@/services/storageService';
 import { startLocationTracking, requestLocationPermissions } from '@/services/locationService';
-import { registerForPushNotificationsAsync } from '@/services/notificationService';
+import { registerForPushNotificationsAsync, isNotificationsMuted, getMutedTimeRemaining } from '@/services/notificationService';
 import { downloadOfflineTiles, hasOfflineTiles } from '@/services/offlineMapService';
 import { syncAlertPointsFromSheets, isSheetsConfigured } from '@/services/sheetsService';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -18,11 +20,28 @@ export default function MapScreen() {
   const [offlineAvailable, setOfflineAvailable] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [notificationsMuted, setNotificationsMuted] = useState(false);
+  const [mutedTimeRemaining, setMutedTimeRemaining] = useState<number | null>(null);
   const webViewRef = useRef<WebView>(null);
 
   useEffect(() => {
     initializeApp();
   }, []);
+
+  // Atualiza status de notificações quando a tela ganha foco
+  useFocusEffect(
+    useCallback(() => {
+      checkNotificationStatus();
+    }, [])
+  );
+
+  async function checkNotificationStatus() {
+    const muted = await isNotificationsMuted();
+    setNotificationsMuted(muted);
+
+    const timeRemaining = await getMutedTimeRemaining();
+    setMutedTimeRemaining(timeRemaining);
+  }
 
   async function initializeApp() {
     try {
@@ -60,6 +79,8 @@ export default function MapScreen() {
 
       const hasOffline = await hasOfflineTiles();
       setOfflineAvailable(hasOffline);
+
+      await checkNotificationStatus();
 
       setLoading(false);
     } catch (error) {
@@ -122,6 +143,7 @@ export default function MapScreen() {
       }
       
       await loadAlertPoints();
+      await checkNotificationStatus();
       
       const currentLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
@@ -178,6 +200,19 @@ export default function MapScreen() {
         },
       ]
     );
+  }
+
+  function formatTimeRemaining(minutes: number): string {
+    if (minutes < 60) {
+      return `${minutes}min`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}d`;
+    }
+    return `${hours}h${mins > 0 ? `${mins}m` : ''}`;
   }
 
   const htmlContent = `
@@ -289,12 +324,22 @@ export default function MapScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>SE LIGA AÍ</Text>
-        {tracking && (
-          <View style={styles.trackingBadge}>
-            <View style={styles.trackingDot} />
-            <Text style={styles.trackingText}>Monitorando</Text>
-          </View>
-        )}
+        <View style={styles.headerBadges}>
+          {tracking && (
+            <View style={styles.trackingBadge}>
+              <View style={styles.trackingDot} />
+              <Text style={styles.trackingText}>Monitorando</Text>
+            </View>
+          )}
+          {notificationsMuted && (
+            <View style={styles.mutedBadge}>
+              <BellOff size={12} color="#EF4444" />
+              <Text style={styles.mutedText}>
+                {mutedTimeRemaining ? formatTimeRemaining(mutedTimeRemaining) : 'Silenciado'}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Controles do Mapa */}
@@ -414,6 +459,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  headerBadges: {
+    gap: 8,
+  },
   trackingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -436,6 +484,25 @@ const styles = StyleSheet.create({
   },
   trackingText: {
     color: '#10B981',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mutedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  mutedText: {
+    color: '#EF4444',
     fontSize: 12,
     fontWeight: '600',
   },
