@@ -63,8 +63,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "8ee40232-f6a2-4422-b7f7-9c4566a2791d"
+        "projectId": "7bb1011a-b833-4bf7-a6f2-c283b3715213"
       }
-    }
+    },
+    "owner": "glauco_pinheiro"
   }
 }
