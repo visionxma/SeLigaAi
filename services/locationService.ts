@@ -1,8 +1,8 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { calculateDistance } from '@/utils/haversine';
-import { scheduleNotification } from './notificationService';
-import { getAllAlertPoints } from './storageService'; // ✅ CORRIGIDO: era sheetsService
+import { scheduleNotification, checkZoneEntry } from './notificationService';
+import { getAllAlertPoints } from './storageService';
 import { AlertPoint } from '@/types';
 
 const LOCATION_TASK_NAME = 'background-location-task';
@@ -65,6 +65,9 @@ export async function stopLocationTracking() {
   }
 }
 
+/**
+ * ✅ CORRIGIDO: Agora verifica se o usuário ENTROU na zona antes de notificar
+ */
 export async function checkProximityToAlerts(
   userLat: number,
   userLng: number,
@@ -78,9 +81,13 @@ export async function checkProximityToAlerts(
       point.longitude
     );
 
-    // Se o usuário está dentro do raio de alerta
-    if (distance <= point.radius) {
-      console.log(`User is near alert point: ${point.alert_type} (${distance.toFixed(0)}m)`);
+    const isInside = distance <= point.radius;
+
+    // Verifica se acabou de entrar na zona
+    const shouldNotify = await checkZoneEntry(point.id, isInside);
+
+    if (shouldNotify) {
+      console.log(`User entered alert zone: ${point.alert_type} (${distance.toFixed(0)}m)`);
       await scheduleNotification(point);
     }
   }

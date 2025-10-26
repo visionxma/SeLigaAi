@@ -92,16 +92,45 @@ export default function SettingsScreen() {
     }
   }
 
+  // ✅ CORRIGIDO: Divide em duas etapas para respeitar o limite de 3 botões do Android
   function showMuteOptions() {
     Alert.alert(
       '🔕 Silenciar Por Quanto Tempo?',
-      'Escolha por quanto tempo deseja silenciar as notificações:',
+      'Escolha o período:',
       [
         { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Tempos Curtos', 
+          onPress: () => showShortTimeOptions() 
+        },
+        { 
+          text: 'Tempos Longos', 
+          onPress: () => showLongTimeOptions() 
+        },
+      ]
+    );
+  }
+
+  function showShortTimeOptions() {
+    Alert.alert(
+      '⏱️ Tempos Curtos',
+      'Selecione:',
+      [
+        { text: 'Voltar', style: 'cancel', onPress: () => showMuteOptions() },
         { text: '15 minutos', onPress: () => handleMuteTemporary(15) },
         { text: '1 hora', onPress: () => handleMuteTemporary(60) },
+      ]
+    );
+  }
+
+  function showLongTimeOptions() {
+    Alert.alert(
+      '⏰ Tempos Longos',
+      'Selecione:',
+      [
+        { text: 'Voltar', style: 'cancel', onPress: () => showMuteOptions() },
         { text: '8 horas', onPress: () => handleMuteTemporary(480) },
-        { text: '1 dia', onPress: () => handleMuteTemporary(1440) },
+        { text: '1 dia (24h)', onPress: () => handleMuteTemporary(1440) },
       ]
     );
   }
