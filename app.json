@@ -7,7 +7,7 @@
     "scheme": "seligaai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/SeligaiIcon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.seligaai.app",
@@ -15,9 +15,7 @@
         "NSLocationWhenInUseUsageDescription": "Este app precisa acessar sua localização para alertá-lo sobre áreas de risco próximas.",
         "NSLocationAlwaysUsageDescription": "Este app precisa acessar sua localização em segundo plano para alertá-lo sobre áreas de risco próximas mesmo quando o app não estiver aberto.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Este app precisa acessar sua localização para alertá-lo sobre áreas de risco próximas.",
-        "UIBackgroundModes": [
-          "location"
-        ]
+        "UIBackgroundModes": ["location"]
       }
     },
     "android": {

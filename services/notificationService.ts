@@ -5,14 +5,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AlertPoint } from '@/types';
 import { saveNotificationToHistory } from './storageService';
 
-const INSIDE_ZONES_KEY = 'inside_zones'; // Rastreia em quais zonas o usuário está
+const INSIDE_ZONES_KEY = 'inside_zones';
 const NOTIFICATION_SETTINGS_KEY = 'notification_settings';
+const ACTIVE_NOTIFICATIONS_KEY = 'active_notifications'; // ✅ NOVO: Rastreia notificações ativas
 
 // Configurações de silenciamento
 export interface NotificationSettings {
-  isMuted: boolean; // Silenciado permanentemente
-  mutedUntil: string | null; // Silenciado até uma data específica
-  mutedAlertIds: string[]; // IDs de alertas específicos silenciados
+  isMuted: boolean;
+  mutedUntil: string | null;
+  mutedAlertIds: string[];
+}
+
+// ✅ NOVO: Mapeamento de notificações ativas por zona
+interface ActiveNotification {
+  notificationId: string;
+  alertPointId: string;
+  timestamp: string;
 }
 
 Notifications.setNotificationHandler({
@@ -29,12 +37,20 @@ export async function registerForPushNotificationsAsync() {
   let token;
 
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Alertas de Área',
+    // ✅ MELHORADO: Canal com vibração LONGA e som alto
+    await Notifications.setNotificationChannelAsync('alerts', {
+      name: 'Alertas de Área de Risco',
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-      sound: 'default',
+      vibrationPattern: [0, 1000, 300, 1000, 300, 1000, 300, 1000], // ✅ Vibra 4x por 1 segundo cada
+      lightColor: '#EF4444',
+      sound: 'default', // ✅ Som padrão do sistema
+      enableLights: true,
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.ALARM, // ✅ CRÍTICO: Usa volume de ALARME
+      },
     });
   }
 
@@ -67,12 +83,13 @@ export async function checkZoneEntry(
 
     // Atualiza o estado
     if (isInside && !wasInside) {
-      // ENTROU na zona
+      // ✅ ENTROU na zona
       await addInsideZone(alertPointId);
       return true; // Deve notificar
     } else if (!isInside && wasInside) {
-      // SAIU da zona
+      // ✅ SAIU da zona - remove notificação persistente
       await removeInsideZone(alertPointId);
+      await dismissNotificationForZone(alertPointId);
       return false;
     }
 
@@ -129,7 +146,7 @@ export async function isAlertMuted(alertId: string): Promise<boolean> {
 }
 
 /**
- * Envia notificação apenas se for entrada em zona nova e não estiver silenciado
+ * ✅ MELHORADO: Envia notificação persistente com som ALTO e vibração LONGA
  */
 export async function scheduleNotification(alertPoint: AlertPoint) {
   try {
@@ -147,24 +164,128 @@ export async function scheduleNotification(alertPoint: AlertPoint) {
       return;
     }
 
-    // Envia a notificação
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `⚠️ ${alertPoint.alert_type}`,
-        body: `Você entrou em uma área de alerta!\n${alertPoint.street}, ${alertPoint.city}`,
-        data: { alertPointId: alertPoint.id },
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
+    // ✅ NOVO: Configuração de notificação persistente
+    const notificationConfig: any = {
+      title: `⚠️ ALERTA: ${alertPoint.alert_type}`,
+      body: `Você entrou em uma área de risco!\n📍 ${alertPoint.street}, ${alertPoint.city}\n\n⚠️ Esta notificação permanecerá até você sair da área.`,
+      data: { 
+        alertPointId: alertPoint.id,
+        isPersistent: true,
       },
+      sound: 'default', // ✅ Som padrão
+      priority: Notifications.AndroidNotificationPriority.MAX,
+      vibrate: [0, 1000, 300, 1000, 300, 1000, 300, 1000], // ✅ 4 vibrações longas (1s cada)
+      badge: 1,
+      sticky: true,
+    };
+
+    // Configurações específicas do Android
+    if (Platform.OS === 'android') {
+      notificationConfig.channelId = 'alerts';
+      notificationConfig.color = '#EF4444';
+      notificationConfig.ongoing = true;
+      notificationConfig.autoCancel = false;
+      notificationConfig.importance = Notifications.AndroidImportance.MAX;
+      notificationConfig.priority = Notifications.AndroidNotificationPriority.MAX;
+    }
+
+    // ✅ IMPORTANTE: Log para debug
+    console.log('📢 Sending notification with config:', {
+      sound: notificationConfig.sound,
+      vibrate: notificationConfig.vibrate,
+      channelId: notificationConfig.channelId,
+    });
+
+    // Envia a notificação
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: notificationConfig,
       trigger: null, // Notificação imediata
     });
+
+    // ✅ NOVO: Salva o ID da notificação para poder removê-la depois
+    await saveActiveNotification(notificationId, alertPoint.id);
 
     // Salva no histórico
     await saveNotificationToHistory(alertPoint);
 
-    console.log('Notification sent for:', alertPoint.alert_type);
+    console.log(`✅ Persistent notification sent for: ${alertPoint.alert_type} (ID: ${notificationId})`);
   } catch (error) {
-    console.error('Error scheduling notification:', error);
+    console.error('❌ Error scheduling notification:', error);
+  }
+}
+
+/**
+ * ✅ NOVO: Remove notificação quando o usuário sai da zona
+ */
+async function dismissNotificationForZone(alertPointId: string) {
+  try {
+    const activeNotifications = await getActiveNotifications();
+    const notification = activeNotifications.find(n => n.alertPointId === alertPointId);
+
+    if (notification) {
+      // Remove a notificação
+      await Notifications.dismissNotificationAsync(notification.notificationId);
+      
+      // Remove do registro
+      await removeActiveNotification(alertPointId);
+      
+      console.log(`Notification dismissed for zone: ${alertPointId}`);
+    }
+  } catch (error) {
+    console.error('Error dismissing notification:', error);
+  }
+}
+
+// ========== GERENCIAMENTO DE NOTIFICAÇÕES ATIVAS ==========
+
+async function getActiveNotifications(): Promise<ActiveNotification[]> {
+  try {
+    const stored = await AsyncStorage.getItem(ACTIVE_NOTIFICATIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveActiveNotification(notificationId: string, alertPointId: string) {
+  try {
+    const notifications = await getActiveNotifications();
+    notifications.push({
+      notificationId,
+      alertPointId,
+      timestamp: new Date().toISOString(),
+    });
+    await AsyncStorage.setItem(ACTIVE_NOTIFICATIONS_KEY, JSON.stringify(notifications));
+  } catch (error) {
+    console.error('Error saving active notification:', error);
+  }
+}
+
+async function removeActiveNotification(alertPointId: string) {
+  try {
+    const notifications = await getActiveNotifications();
+    const filtered = notifications.filter(n => n.alertPointId !== alertPointId);
+    await AsyncStorage.setItem(ACTIVE_NOTIFICATIONS_KEY, JSON.stringify(filtered));
+  } catch (error) {
+    console.error('Error removing active notification:', error);
+  }
+}
+
+/**
+ * ✅ NOVO: Limpa todas as notificações ativas (útil ao reiniciar o app)
+ */
+export async function dismissAllActiveNotifications() {
+  try {
+    const activeNotifications = await getActiveNotifications();
+    
+    for (const notification of activeNotifications) {
+      await Notifications.dismissNotificationAsync(notification.notificationId);
+    }
+    
+    await AsyncStorage.setItem(ACTIVE_NOTIFICATIONS_KEY, JSON.stringify([]));
+    console.log('All active notifications dismissed');
+  } catch (error) {
+    console.error('Error dismissing all notifications:', error);
   }
 }
 

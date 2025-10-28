@@ -6,7 +6,13 @@ import { MapPin, Navigation, RefreshCw, Download, Cloud, BellOff } from 'lucide-
 import { AlertPoint } from '@/types';
 import { getAllAlertPoints } from '@/services/storageService';
 import { startLocationTracking, requestLocationPermissions } from '@/services/locationService';
-import { registerForPushNotificationsAsync, isNotificationsMuted, getMutedTimeRemaining } from '@/services/notificationService';
+import { 
+  registerForPushNotificationsAsync, 
+  isNotificationsMuted, 
+  getMutedTimeRemaining,
+  dismissAllActiveNotifications, // ✅ NOVO
+  clearInsideZones, // ✅ NOVO
+} from '@/services/notificationService';
 import { downloadOfflineTiles, hasOfflineTiles } from '@/services/offlineMapService';
 import { syncAlertPointsFromSheets, isSheetsConfigured } from '@/services/sheetsService';
 import { useFocusEffect } from '@react-navigation/native';
@@ -46,6 +52,10 @@ export default function MapScreen() {
   async function initializeApp() {
     try {
       await registerForPushNotificationsAsync();
+
+      // ✅ NOVO: Limpa notificações e zonas antigas ao iniciar
+      await dismissAllActiveNotifications();
+      await clearInsideZones();
 
       const hasPermissions = await requestLocationPermissions();
 
