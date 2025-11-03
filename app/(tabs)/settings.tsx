@@ -7,8 +7,10 @@ import {
   Switch,
   Alert,
   ScrollView,
+  Modal,
+  Pressable,
 } from 'react-native';
-import { Bell, BellOff, Clock, Volume2, VolumeX } from 'lucide-react-native';
+import { Bell, BellOff, Clock, Volume2, VolumeX, X } from 'lucide-react-native';
 import {
   getNotificationSettings,
   muteNotifications,
@@ -25,6 +27,14 @@ export default function SettingsScreen() {
   });
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showMuteModal, setShowMuteModal] = useState(false);
+
+  const muteTimeOptions = [
+    { label: '15 minutos', minutes: 15, icon: '⏱️' },
+    { label: '1 hora', minutes: 60, icon: '⏰' },
+    { label: '8 horas', minutes: 480, icon: '🕐' },
+    { label: '1 dia', minutes: 1440, icon: '📅' },
+  ];
 
   useEffect(() => {
     loadSettings();
@@ -68,6 +78,7 @@ export default function SettingsScreen() {
     try {
       await setMuteUntil(minutes);
       await loadSettings();
+      setShowMuteModal(false);
 
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
@@ -90,49 +101,6 @@ export default function SettingsScreen() {
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível reativar.');
     }
-  }
-
-  // ✅ CORRIGIDO: Divide em duas etapas para respeitar o limite de 3 botões do Android
-  function showMuteOptions() {
-    Alert.alert(
-      '🔕 Silenciar Por Quanto Tempo?',
-      'Escolha o período:',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Tempos Curtos', 
-          onPress: () => showShortTimeOptions() 
-        },
-        { 
-          text: 'Tempos Longos', 
-          onPress: () => showLongTimeOptions() 
-        },
-      ]
-    );
-  }
-
-  function showShortTimeOptions() {
-    Alert.alert(
-      '⏱️ Tempos Curtos',
-      'Selecione:',
-      [
-        { text: 'Voltar', style: 'cancel', onPress: () => showMuteOptions() },
-        { text: '15 minutos', onPress: () => handleMuteTemporary(15) },
-        { text: '1 hora', onPress: () => handleMuteTemporary(60) },
-      ]
-    );
-  }
-
-  function showLongTimeOptions() {
-    Alert.alert(
-      '⏰ Tempos Longos',
-      'Selecione:',
-      [
-        { text: 'Voltar', style: 'cancel', onPress: () => showMuteOptions() },
-        { text: '8 horas', onPress: () => handleMuteTemporary(480) },
-        { text: '1 dia (24h)', onPress: () => handleMuteTemporary(1440) },
-      ]
-    );
   }
 
   function formatTimeRemaining(minutes: number): string {
@@ -220,17 +188,17 @@ export default function SettingsScreen() {
           </View>
         ) : (
           <TouchableOpacity
-            style={[styles.optionButton, isMutedPermanently && styles.optionButtonDisabled]}
-            onPress={showMuteOptions}
+            style={[styles.openModalButton, isMutedPermanently && styles.openModalButtonDisabled]}
+            onPress={() => setShowMuteModal(true)}
             disabled={isMutedPermanently}
           >
             <Clock size={24} color={isMutedPermanently ? '#64748B' : '#3B82F6'} />
             <View style={styles.optionContent}>
               <Text style={[styles.optionTitle, isMutedPermanently && styles.textDisabled]}>
-                Silenciar por um período
+                Escolher período de silêncio
               </Text>
               <Text style={[styles.optionDescription, isMutedPermanently && styles.textDisabled]}>
-                15 min, 1h, 8h ou 1 dia
+                Toque para ver as opções
               </Text>
             </View>
           </TouchableOpacity>
@@ -270,6 +238,55 @@ export default function SettingsScreen() {
           • Silencie temporariamente quando não quiser ser perturbado
         </Text>
       </View>
+
+      {/* Modal de Opções de Tempo */}
+      <Modal
+        visible={showMuteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMuteModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowMuteModal(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            {/* Header do Modal */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🔕 Silenciar por quanto tempo?</Text>
+              <TouchableOpacity
+                onPress={() => setShowMuteModal(false)}
+                style={styles.closeButton}
+              >
+                <X size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Grid de Opções */}
+            <View style={styles.timeOptionsGrid}>
+              {muteTimeOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.minutes}
+                  style={styles.timeOptionCard}
+                  onPress={() => handleMuteTemporary(option.minutes)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.timeOptionIcon}>{option.icon}</Text>
+                  <Text style={styles.timeOptionLabel}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Botão Cancelar */}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowMuteModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -346,7 +363,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94A3B8',
   },
-  optionButton: {
+  openModalButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
@@ -355,8 +372,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
   },
-  optionButtonDisabled: {
+  openModalButtonDisabled: {
     opacity: 0.5,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#1E293B',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   optionContent: {
     flex: 1,
@@ -426,5 +452,71 @@ const styles = StyleSheet.create({
   infoBold: {
     fontWeight: '600',
     color: '#3B82F6',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  timeOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  timeOptionCard: {
+    width: '48%',
+    backgroundColor: '#334155',
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#475569',
+  },
+  timeOptionIcon: {
+    fontSize: 40,
+    marginBottom: 12,
+  },
+  timeOptionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#334155',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#94A3B8',
   },
 });

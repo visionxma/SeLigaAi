@@ -7,7 +7,7 @@
     "scheme": "seligaai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "icon": "./assets/images/SeligaiIcon.png",
+    "icon": "./assets/images/Icon.jpg",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.seligaai.app",
