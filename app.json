@@ -7,9 +7,9 @@
     "scheme": "seligaai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "icon": "./assets/images/Icon.jpg",
+    "icon": "./assets/images/Icon.png",
     "splash": {
-      "image": "./assets/images/splash.jpg",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0F172A"
     },
@@ -40,14 +40,14 @@
       ],
       "newArchEnabled": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Icon.jpg",
+        "foregroundImage": "./assets/images/Icon.png",
         "backgroundColor": "#0F172A"
       }
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/Icon.jpg"
+      "favicon": "./assets/images/Icon.png"
     },
     "plugins": [
       "expo-router",
