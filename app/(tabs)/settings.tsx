@@ -39,7 +39,6 @@ export default function SettingsScreen() {
   useEffect(() => {
     loadSettings();
     
-    // Atualiza o tempo restante a cada minuto
     const interval = setInterval(loadSettings, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -131,7 +130,6 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {isAnyMuted ? (
@@ -143,7 +141,6 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Status Atual */}
       <View style={styles.section}>
         <View style={[
           styles.statusCard,
@@ -167,7 +164,6 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Silenciamento Temporário */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Silenciar Temporariamente</Text>
         
@@ -192,7 +188,7 @@ export default function SettingsScreen() {
             onPress={() => setShowMuteModal(true)}
             disabled={isMutedPermanently}
           >
-            <Clock size={24} color={isMutedPermanently ? '#64748B' : '#3B82F6'} />
+            <Clock size={24} color={isMutedPermanently ? '#9CA3AF' : '#EF4444'} />
             <View style={styles.optionContent}>
               <Text style={[styles.optionTitle, isMutedPermanently && styles.textDisabled]}>
                 Escolher período de silêncio
@@ -205,12 +201,11 @@ export default function SettingsScreen() {
         )}
       </View>
 
-      {/* Silenciamento Permanente */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Silenciar Permanentemente</Text>
         
         <View style={styles.optionButton}>
-          <BellOff size={24} color={isMutedPermanently ? '#EF4444' : '#64748B'} />
+          <BellOff size={24} color={isMutedPermanently ? '#EF4444' : '#9CA3AF'} />
           <View style={styles.optionContent}>
             <Text style={styles.optionTitle}>
               Desativar todas as notificações
@@ -222,13 +217,12 @@ export default function SettingsScreen() {
           <Switch
             value={isMutedPermanently}
             onValueChange={handleToggleMute}
-            trackColor={{ false: '#334155', true: '#EF4444' }}
-            thumbColor={isMutedPermanently ? '#FFFFFF' : '#94A3B8'}
+            trackColor={{ false: '#E5E7EB', true: '#FCA5A5' }}
+            thumbColor={isMutedPermanently ? '#EF4444' : '#FFFFFF'}
           />
         </View>
       </View>
 
-      {/* Informações */}
       <View style={styles.infoSection}>
         <Text style={styles.infoTitle}>ℹ️ Como Funciona</Text>
         <Text style={styles.infoText}>
@@ -239,7 +233,6 @@ export default function SettingsScreen() {
         </Text>
       </View>
 
-      {/* Modal de Opções de Tempo */}
       <Modal
         visible={showMuteModal}
         transparent={true}
@@ -251,18 +244,16 @@ export default function SettingsScreen() {
           onPress={() => setShowMuteModal(false)}
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            {/* Header do Modal */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>🔕 Silenciar por quanto tempo?</Text>
               <TouchableOpacity
                 onPress={() => setShowMuteModal(false)}
                 style={styles.closeButton}
               >
-                <X size={24} color="#94A3B8" />
+                <X size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            {/* Grid de Opções */}
             <View style={styles.timeOptionsGrid}>
               {muteTimeOptions.map((option) => (
                 <TouchableOpacity
@@ -277,7 +268,6 @@ export default function SettingsScreen() {
               ))}
             </View>
 
-            {/* Botão Cancelar */}
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowMuteModal(false)}
@@ -294,23 +284,25 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F9FAFB',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F9FAFB',
   },
   loadingText: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   header: {
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   headerContent: {
     flexDirection: 'row',
@@ -320,7 +312,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   section: {
     paddingHorizontal: 20,
@@ -329,7 +321,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -341,13 +333,12 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     borderWidth: 2,
+    backgroundColor: '#FFFFFF',
   },
   statusActive: {
-    backgroundColor: '#1E293B',
     borderColor: '#10B981',
   },
   statusMuted: {
-    backgroundColor: '#1E293B',
     borderColor: '#EF4444',
   },
   statusText: {
@@ -356,21 +347,26 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1F2937',
     marginBottom: 4,
   },
   statusSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#6B7280',
   },
   openModalButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   openModalButtonDisabled: {
     opacity: 0.5,
@@ -379,10 +375,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   optionContent: {
     flex: 1,
@@ -390,18 +391,18 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1F2937',
     marginBottom: 4,
   },
   optionDescription: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#6B7280',
   },
   textDisabled: {
-    color: '#64748B',
+    color: '#9CA3AF',
   },
   mutedInfo: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
     borderWidth: 2,
@@ -433,36 +434,35 @@ const styles = StyleSheet.create({
   infoSection: {
     margin: 20,
     padding: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: '#EF4444',
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1F2937',
     marginBottom: 12,
   },
   infoText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#6B7280',
     lineHeight: 22,
   },
   infoBold: {
     fontWeight: '600',
-    color: '#3B82F6',
+    color: '#EF4444',
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1F2937',
     flex: 1,
   },
   closeButton: {
@@ -491,12 +491,12 @@ const styles = StyleSheet.create({
   },
   timeOptionCard: {
     width: '48%',
-    backgroundColor: '#334155',
+    backgroundColor: '#F9FAFB',
     padding: 24,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#475569',
+    borderColor: '#E5E7EB',
   },
   timeOptionIcon: {
     fontSize: 40,
@@ -505,11 +505,11 @@ const styles = StyleSheet.create({
   timeOptionLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1F2937',
     textAlign: 'center',
   },
   cancelButton: {
-    backgroundColor: '#334155',
+    backgroundColor: '#F3F4F6',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -517,6 +517,6 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#6B7280',
   },
 });

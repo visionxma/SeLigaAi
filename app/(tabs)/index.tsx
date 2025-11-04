@@ -10,8 +10,8 @@ import {
   registerForPushNotificationsAsync, 
   isNotificationsMuted, 
   getMutedTimeRemaining,
-  dismissAllActiveNotifications, // ✅ NOVO
-  clearInsideZones, // ✅ NOVO
+  dismissAllActiveNotifications,
+  clearInsideZones,
 } from '@/services/notificationService';
 import { downloadOfflineTiles, hasOfflineTiles } from '@/services/offlineMapService';
 import { syncAlertPointsFromSheets, isSheetsConfigured } from '@/services/sheetsService';
@@ -34,7 +34,6 @@ export default function MapScreen() {
     initializeApp();
   }, []);
 
-  // Atualiza status de notificações quando a tela ganha foco
   useFocusEffect(
     useCallback(() => {
       checkNotificationStatus();
@@ -52,8 +51,6 @@ export default function MapScreen() {
   async function initializeApp() {
     try {
       await registerForPushNotificationsAsync();
-
-      // ✅ NOVO: Limpa notificações e zonas antigas ao iniciar
       await dismissAllActiveNotifications();
       await clearInsideZones();
 
@@ -73,7 +70,6 @@ export default function MapScreen() {
       });
       setLocation(currentLocation);
 
-      // Tenta sincronizar do Google Sheets primeiro
       if (isSheetsConfigured()) {
         console.log('Syncing from Google Sheets...');
         const synced = await syncAlertPointsFromSheets();
@@ -126,7 +122,6 @@ export default function MapScreen() {
       if (synced) {
         await loadAlertPoints();
         
-        // Atualiza o mapa
         if (webViewRef.current) {
           webViewRef.current.reload();
         }
@@ -145,7 +140,6 @@ export default function MapScreen() {
 
   async function handleRefresh() {
     try {
-      // Sincroniza do Google Sheets se configurado
       if (isSheetsConfigured()) {
         setSyncing(true);
         await syncAlertPointsFromSheets();
@@ -160,7 +154,6 @@ export default function MapScreen() {
       });
       setLocation(currentLocation);
       
-      // Atualiza o mapa no WebView
       if (webViewRef.current) {
         webViewRef.current.injectJavaScript(`
           if (window.updateUserLocation) {
@@ -241,34 +234,28 @@ export default function MapScreen() {
     <body>
       <div id="map"></div>
       <script>
-        // Inicializa o mapa
         const map = L.map('map', {
           zoomControl: true,
           attributionControl: false
         }).setView([${location?.coords.latitude || -4.5667}, ${location?.coords.longitude || -44.6}], 15);
 
-        // Camada do OpenStreetMap
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // Ícone personalizado para o usuário
         const userIcon = L.divIcon({
           className: 'user-marker',
-          html: '<div style="width: 20px; height: 20px; background: #3B82F6; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+          html: '<div style="width: 20px; height: 20px; background: #EF4444; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
           iconSize: [20, 20],
           iconAnchor: [10, 10]
         });
 
-        // Marcador do usuário
         let userMarker = L.marker([${location?.coords.latitude || -4.5667}, ${location?.coords.longitude || -44.6}], { icon: userIcon }).addTo(map);
 
-        // Adiciona os pontos de alerta
         const alertPoints = ${JSON.stringify(alertPoints)};
         
         alertPoints.forEach(point => {
-          // Círculo de raio
           L.circle([point.latitude, point.longitude], {
             color: '#EF4444',
             fillColor: '#EF4444',
@@ -277,7 +264,6 @@ export default function MapScreen() {
             weight: 2
           }).addTo(map);
 
-          // Marcador
           const marker = L.marker([point.latitude, point.longitude], {
             icon: L.divIcon({
               className: 'alert-marker',
@@ -295,7 +281,6 @@ export default function MapScreen() {
           \`);
         });
 
-        // Funções globais para controle externo
         window.updateUserLocation = (lat, lng) => {
           userMarker.setLatLng([lat, lng]);
           map.setView([lat, lng]);
@@ -319,7 +304,6 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Mapa com OpenStreetMap via WebView */}
       {location && (
         <WebView
           ref={webViewRef}
@@ -331,7 +315,6 @@ export default function MapScreen() {
         />
       )}
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>SE LIGA AÍ</Text>
         <View style={styles.headerBadges}>
@@ -352,7 +335,6 @@ export default function MapScreen() {
         </View>
       </View>
 
-      {/* Controles do Mapa */}
       <View style={styles.controls}>
         <TouchableOpacity
           style={styles.controlButton}
@@ -393,16 +375,14 @@ export default function MapScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Card de Estatísticas */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <MapPin size={20} color="#3B82F6" />
+          <MapPin size={20} color="#EF4444" />
           <Text style={styles.statNumber}>{alertPoints.length}</Text>
           <Text style={styles.statLabel}>Pontos de Alerta</Text>
         </View>
       </View>
 
-      {/* Badge de Status */}
       <View style={styles.bottomBadges}>
         <View style={styles.osmBadge}>
           <Text style={styles.osmText}>🗺️ OpenStreetMap</Text>
@@ -431,17 +411,17 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F9FAFB',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F9FAFB',
   },
   loadingText: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   map: {
     flex: 1,
@@ -458,15 +438,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    backgroundColor: '#1E293B',
+    color: '#EF4444',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   headerBadges: {
@@ -475,14 +455,14 @@ const styles = StyleSheet.create({
   trackingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   trackingDot: {
@@ -500,15 +480,15 @@ const styles = StyleSheet.create({
   mutedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     gap: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   mutedText: {
@@ -526,17 +506,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#EF4444',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 8,
   },
   controlButtonDisabled: {
-    backgroundColor: '#64748B',
+    backgroundColor: '#9CA3AF',
     opacity: 0.6,
   },
   controlButtonSuccess: {
@@ -548,7 +528,7 @@ const styles = StyleSheet.create({
     left: 20,
   },
   statCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -557,18 +537,18 @@ const styles = StyleSheet.create({
     gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   statNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   statLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#6B7280',
   },
   bottomBadges: {
     position: 'absolute',
@@ -578,32 +558,32 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   osmBadge: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   osmText: {
-    color: '#FFFFFF',
+    color: '#1F2937',
     fontSize: 10,
     fontWeight: '600',
   },
   offlineBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   offlineDot: {
@@ -619,14 +599,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   downloadingBadge: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#EF4444',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   downloadingText: {
@@ -641,8 +621,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
   },
   syncingText: {

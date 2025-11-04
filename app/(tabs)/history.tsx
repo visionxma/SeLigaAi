@@ -108,7 +108,7 @@ export default function HistoryScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Bell size={28} color="#FFFFFF" />
+          <Bell size={28} color="#EF4444" />
           <Text style={styles.headerTitle}>Histórico</Text>
         </View>
         {notifications.length > 0 && (
@@ -123,7 +123,7 @@ export default function HistoryScreen() {
 
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Bell size={64} color="#475569" />
+          <Bell size={64} color="#D1D5DB" />
           <Text style={styles.emptyTitle}>Nenhuma notificação</Text>
           <Text style={styles.emptyText}>
             Você será notificado quando se aproximar de áreas de alerta
@@ -144,26 +144,28 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F9FAFB',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F9FAFB',
   },
   loadingText: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   header: {
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   headerContent: {
     flexDirection: 'row',
@@ -173,7 +175,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   clearButton: {
     backgroundColor: '#EF4444',
@@ -190,12 +192,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   notificationCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#EF4444',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   notificationHeader: {
     flexDirection: 'row',
@@ -215,12 +222,12 @@ const styles = StyleSheet.create({
   },
   notificationLocation: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#1F2937',
     marginBottom: 8,
   },
   notificationDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B7280',
   },
   emptyContainer: {
     flex: 1,
@@ -231,13 +238,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1F2937',
     marginTop: 20,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: '#6B7280',
     textAlign: 'center',
   },
 });
