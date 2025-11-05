@@ -1,3 +1,7 @@
+# ============================================
+# .easignore - Otimizado para builds menores
+# ============================================
+
 # Dependências (serão reinstaladas no servidor)
 node_modules
 
@@ -8,9 +12,13 @@ web-build
 android/build
 android/app/build
 ios/build
+*.apk
+*.aab
+*.ipa
 
 # Cache do Metro
 .metro-health-check*
+.metro
 
 # Arquivos de desenvolvimento
 .vscode
@@ -19,40 +27,145 @@ ios/build
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+pnpm-debug.log*
 
 # Arquivos do sistema
 .DS_Store
 *.pem
 Thumbs.db
+*.swp
+*.swo
+*~
 
 # Git
 .git
 .gitignore
+.gitattributes
 
 # Arquivos temporários
 *.tmp
 *.temp
 .cache
+tmp/
+temp/
 
-# Documentação e README (opcional)
+# Documentação e README
 README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
 docs/
+*.md
 
-# Arquivos de teste (se tiver)
+# Arquivos de teste
 __tests__
+__mocks__
 *.test.ts
 *.test.tsx
+*.test.js
+*.test.jsx
 *.spec.ts
 *.spec.tsx
+*.spec.js
+*.spec.jsx
+coverage/
+.nyc_output/
+jest.config.js
+jest.config.ts
 
 # Arquivos de ambiente local
+.env
 .env.local
 .env*.local
+.env.development
+.env.test
 
 # TypeScript build info
 *.tsbuildinfo
 
-# Prettier e ESLint (não necessários no build)
+# Prettier, ESLint e outras configs de dev
 .prettierrc
+.prettierrc.js
+.prettierrc.json
+.prettierignore
+.eslintrc
 .eslintrc.js
+.eslintrc.json
 .eslintignore
+.editorconfig
+.stylelintrc
+
+# CI/CD configs (não necessários no EAS)
+.github/
+.gitlab-ci.yml
+.travis.yml
+circle.yml
+.circleci/
+azure-pipelines.yml
+
+# Package managers lock files alternativos
+yarn.lock
+pnpm-lock.yaml
+package-lock.json
+
+# Arquivos de assets não otimizados (se tiver)
+*.psd
+*.ai
+*.sketch
+*.fig
+*.xd
+
+# Storybook (se tiver)
+.storybook/
+storybook-static/
+
+# Expo Go (não necessário em builds standalone)
+.expo-shared/
+
+# Arquivos de certificados de desenvolvimento
+*.keystore
+*.mobileprovision
+*.certSigningRequest
+*.p12
+
+# Backup files
+*.bak
+*.backup
+*~.nib
+
+# Database files (se tiver localmente)
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos grandes de exemplo/mock (se tiver)
+mocks/
+fixtures/
+examples/
+
+# Arquivos de análise/profiling
+*.cpuprofile
+*.heapsnapshot
+
+# VS Code workspace
+*.code-workspace
+
+# JetBrains IDE
+*.iml
+.idea/
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
