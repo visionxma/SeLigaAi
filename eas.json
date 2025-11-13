@@ -21,17 +21,13 @@
       "autoIncrement": true,
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
-        "enableProguardInReleaseBuilds": true,
-        "enableShrinkResourcesInReleaseBuilds": true
+        "gradleCommand": ":app:assembleRelease"
       }
     },
     "production-aab": {
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle",
-        "enableProguardInReleaseBuilds": true,
-        "enableShrinkResourcesInReleaseBuilds": true
+        "buildType": "app-bundle"
       }
     }
   },
