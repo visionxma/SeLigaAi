@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "seligaai",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "icon": "./assets/images/Icon.png",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -20,7 +20,9 @@
         "NSLocationWhenInUseUsageDescription": "Este app precisa acessar sua localização para alertá-lo sobre áreas de risco próximas.",
         "NSLocationAlwaysUsageDescription": "Este app precisa acessar sua localização em segundo plano para alertá-lo sobre áreas de risco próximas mesmo quando o app não estiver aberto.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Este app precisa acessar sua localização para alertá-lo sobre áreas de risco próximas.",
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": [
+          "location"
+        ]
       }
     },
     "android": {
@@ -33,13 +35,11 @@
         "FOREGROUND_SERVICE_LOCATION",
         "INTERNET"
       ],
-      "newArchEnabled": true,
+      "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/Icon.png",
         "backgroundColor": "#0F172A"
-      },
-      "enableProguardInReleaseBuilds": true,
-      "enableShrinkResourcesInReleaseBuilds": true
+      }
     },
     "web": {
       "bundler": "metro",
@@ -60,7 +60,20 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minifyEnabled": true,
+            "shrinkResources": true,
+            "proguardEnabled": true,
+            "useLegacyPackaging": true,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
