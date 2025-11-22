@@ -6,13 +6,8 @@
     "orientation": "portrait",
     "scheme": "seligaai",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "icon": "./assets/images/Icon.png",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0F172A"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.seligaai.app",
@@ -20,7 +15,9 @@
         "NSLocationWhenInUseUsageDescription": "Este app precisa acessar sua localização para alertá-lo sobre áreas de risco próximas.",
         "NSLocationAlwaysUsageDescription": "Este app precisa acessar sua localização em segundo plano para alertá-lo sobre áreas de risco próximas mesmo quando o app não estiver aberto.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Este app precisa acessar sua localização para alertá-lo sobre áreas de risco próximas.",
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": [
+          "location"
+        ]
       }
     },
     "android": {
@@ -33,23 +30,16 @@
         "FOREGROUND_SERVICE_LOCATION",
         "INTERNET"
       ],
-      "newArchEnabled": true,
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Icon.png",
-        "backgroundColor": "#0F172A"
-      },
-      "enableProguardInReleaseBuilds": true,
-      "enableShrinkResourcesInReleaseBuilds": true
+      "newArchEnabled": false
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/Icon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser",
       [
         "expo-location",
         {
@@ -60,7 +50,21 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minifyEnabled": true,
+            "shrinkResources": true,
+            "proguardEnabled": true,
+            "useLegacyPackaging": true,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }"
+          }
+        }
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
