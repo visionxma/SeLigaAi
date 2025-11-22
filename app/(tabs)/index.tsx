@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Alert, Modal, ScrollView, Pressable } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
-import { MapPin, Navigation, RefreshCw, Download, Cloud, BellOff, X, MapPinned } from 'lucide-react-native';
+import { MapPin, Navigation, RefreshCw, Cloud, BellOff, X, MapPinned } from 'lucide-react-native';
 import { AlertPoint } from '@/types';
 import { getAllAlertPoints } from '@/services/storageService';
 import { startLocationTracking, requestLocationPermissions } from '@/services/locationService';
@@ -13,7 +13,6 @@ import {
   dismissAllActiveNotifications,
   clearInsideZones,
 } from '@/services/notificationService';
-import { downloadOfflineTiles, hasOfflineTiles } from '@/services/offlineMapService';
 import { syncAlertPointsFromSheets, isSheetsConfigured } from '@/services/sheetsService';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -22,8 +21,6 @@ export default function MapScreen() {
   const [alertPoints, setAlertPoints] = useState<AlertPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [tracking, setTracking] = useState(false);
-  const [offlineAvailable, setOfflineAvailable] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [mutedTimeRemaining, setMutedTimeRemaining] = useState<number | null>(null);
@@ -98,9 +95,6 @@ export default function MapScreen() {
 
       const started = await startLocationTracking();
       setTracking(started);
-
-      const hasOffline = await hasOfflineTiles();
-      setOfflineAvailable(hasOffline);
 
       await checkNotificationStatus();
 
@@ -206,32 +200,6 @@ export default function MapScreen() {
         }
       `);
     }
-  }
-
-  async function handleDownloadOfflineMaps() {
-    Alert.alert(
-      'Baixar Mapas Offline',
-      'Deseja baixar os mapas de Pedreiras e Trizidela do Vale para uso offline? Isso pode levar alguns minutos e consumir cerca de 50-100MB de dados.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Baixar',
-          onPress: async () => {
-            setDownloading(true);
-            try {
-              await downloadOfflineTiles();
-              setOfflineAvailable(true);
-              Alert.alert('Sucesso', 'Mapas baixados! Agora você pode usar o app offline.');
-            } catch (error) {
-              console.error('Error downloading tiles:', error);
-              Alert.alert('Erro', 'Falha ao baixar mapas. Verifique sua conexão e tente novamente.');
-            } finally {
-              setDownloading(false);
-            }
-          },
-        },
-      ]
-    );
   }
 
   function formatTimeRemaining(minutes: number): string {
@@ -419,19 +387,6 @@ export default function MapScreen() {
         >
           <RefreshCw size={24} color="#FFFFFF" />
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            downloading && styles.controlButtonDisabled,
-            offlineAvailable && styles.controlButtonSuccess,
-          ]}
-          onPress={handleDownloadOfflineMaps}
-          activeOpacity={0.7}
-          disabled={downloading}
-        >
-          <Download size={24} color="#FFFFFF" />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.statsContainer}>
@@ -460,22 +415,6 @@ export default function MapScreen() {
         <View style={styles.osmBadge}>
           <Text style={styles.osmText}>🗺️ OpenStreetMap</Text>
         </View>
-        {offlineAvailable && (
-          <View style={styles.offlineBadge}>
-            <View style={styles.offlineDot} />
-            <Text style={styles.offlineText}>Offline Disponível</Text>
-          </View>
-        )}
-        {downloading && (
-          <View style={styles.downloadingBadge}>
-            <Text style={styles.downloadingText}>⬇️ Baixando...</Text>
-          </View>
-        )}
-        {syncing && (
-          <View style={styles.syncingBadge}>
-            <Text style={styles.syncingText}>☁️ Sincronizando...</Text>
-          </View>
-        )}
       </View>
 
       {/* Modal de Lista de Alertas */}
@@ -572,59 +511,63 @@ export default function MapScreen() {
             </ScrollView>
           </View>
 
-          {/* Lista de Alertas */}
-          <ScrollView 
-            style={styles.alertsList}
-            contentContainerStyle={styles.alertsListContent}
-          >
-            {filteredAlerts.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MapPin size={64} color="#D1D5DB" />
-                <Text style={styles.emptyStateTitle}>Nenhum ponto encontrado</Text>
-                <Text style={styles.emptyStateText}>
-                  Não há pontos de alerta registrados nesta cidade
-                </Text>
-              </View>
-            ) : (
-              filteredAlerts.map((alert) => {
-                const isInCurrentCity = alert.city.toLowerCase() === currentCity.toLowerCase();
-                
-                return (
-                  <View 
-                    key={alert.id} 
-                    style={[
-                      styles.alertCard,
-                      isInCurrentCity && styles.alertCardCurrent
-                    ]}
-                  >
-                    <View style={styles.alertCardHeader}>
-                      <View style={styles.alertTypeContainer}>
-                        <View style={styles.alertIcon}>
-                          <Text style={styles.alertIconText}>⚠️</Text>
-                        </View>
-                        <View style={styles.alertInfo}>
-                          <View style={styles.alertTypeRow}>
-                            <Text style={styles.alertType}>{alert.alert_type}</Text>
-                            {isInCurrentCity && (
-                              <View style={styles.currentLocationBadge}>
-                                <MapPinned size={12} color="#10B981" />
-                                <Text style={styles.currentLocationText}>Sua área</Text>
-                              </View>
-                            )}
+          {/* Lista de Alertas - CORRIGIDO */}
+          <View style={styles.alertsListWrapper}>
+            <ScrollView 
+              style={styles.alertsList}
+              contentContainerStyle={styles.alertsListContent}
+              scrollEnabled={true}
+              nestedScrollEnabled={true}
+            >
+              {filteredAlerts.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MapPin size={64} color="#D1D5DB" />
+                  <Text style={styles.emptyStateTitle}>Nenhum ponto encontrado</Text>
+                  <Text style={styles.emptyStateText}>
+                    Não há pontos de alerta registrados nesta cidade
+                  </Text>
+                </View>
+              ) : (
+                filteredAlerts.map((alert) => {
+                  const isInCurrentCity = alert.city.toLowerCase() === currentCity.toLowerCase();
+                  
+                  return (
+                    <View 
+                      key={alert.id} 
+                      style={[
+                        styles.alertCard,
+                        isInCurrentCity && styles.alertCardCurrent
+                      ]}
+                    >
+                      <View style={styles.alertCardHeader}>
+                        <View style={styles.alertTypeContainer}>
+                          <View style={styles.alertIcon}>
+                            <Text style={styles.alertIconText}>⚠️</Text>
                           </View>
-                          <Text style={styles.alertCity}>{alert.city}</Text>
+                          <View style={styles.alertInfo}>
+                            <View style={styles.alertTypeRow}>
+                              <Text style={styles.alertType}>{alert.alert_type}</Text>
+                              {isInCurrentCity && (
+                                <View style={styles.currentLocationBadge}>
+                                  <MapPinned size={12} color="#10B981" />
+                                  <Text style={styles.currentLocationText}>Sua área</Text>
+                                </View>
+                              )}
+                            </View>
+                            <Text style={styles.alertCity}>{alert.city}</Text>
+                          </View>
                         </View>
                       </View>
+                      <View style={styles.alertCardBody}>
+                        <Text style={styles.alertStreet}>📍 {alert.street}</Text>
+                        <Text style={styles.alertRadius}>Raio de alerta: {alert.radius}m</Text>
+                      </View>
                     </View>
-                    <View style={styles.alertCardBody}>
-                      <Text style={styles.alertStreet}>📍 {alert.street}</Text>
-                      <Text style={styles.alertRadius}>Raio de alerta: {alert.radius}m</Text>
-                    </View>
-                  </View>
-                );
-              })
-            )}
-          </ScrollView>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
         </View>
       </Modal>
     </View>
@@ -742,9 +685,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#9CA3AF',
     opacity: 0.6,
   },
-  controlButtonSuccess: {
-    backgroundColor: '#10B981',
-  },
   statsContainer: {
     position: 'absolute',
     bottom: 20,
@@ -825,63 +765,6 @@ const styles = StyleSheet.create({
   },
   osmText: {
     color: '#1F2937',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  offlineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  offlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-    marginRight: 6,
-  },
-  offlineText: {
-    color: '#10B981',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  downloadingBadge: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  downloadingText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  syncingBadge: {
-    backgroundColor: '#8B5CF6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  syncingText: {
-    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -977,6 +860,9 @@ const styles = StyleSheet.create({
   },
   cityFilterBadgeTextActive: {
     color: '#EF4444',
+  },
+  alertsListWrapper: {
+    flex: 1,
   },
   alertsList: {
     flex: 1,
