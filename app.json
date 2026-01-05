@@ -28,7 +28,12 @@
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
-        "INTERNET"
+        "INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "newArchEnabled": false
     },
@@ -72,9 +77,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "7bb1011a-b833-4bf7-a6f2-c283b3715213"
+        "projectId": "8ee40232-f6a2-4422-b7f7-9c4566a2791d"
       }
     },
-    "owner": "glauco_pinheiro"
+    "owner": "alexandrehenrico"
   }
 }
